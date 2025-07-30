@@ -10,6 +10,8 @@ class Card(BaseModel):
     ts: str
     front: str
     back: str
+    pos: str
+    forms: dict[str, str]
     examples: list[str]
 
 # --- CRUD -------------------------------------------------------

@@ -4,3 +4,4 @@ google-cloud-firestore>=2.16
 google-cloud-secret-manager>=2.19
 aiohttp>=3.9
 pydantic>=2.7
+langchain_openai

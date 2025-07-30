@@ -1,6 +1,4 @@
 import os, json, datetime, asyncio, aiohttp
-from pydantic import BaseModel, ValidationError
-from openai import AsyncOpenAI
 from firestore_queue import enqueue, list_cards, delete_batch, Card
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -8,6 +6,7 @@ from telegram.ext import (
     MessageHandler, filters, CallbackQueryHandler
 )
 from google.cloud import secretmanager
+from llm_service import llm_card
 
 # ---------- secrets ----------
 def secret(name: str) -> str:
@@ -17,39 +16,11 @@ def secret(name: str) -> str:
     return client.access_secret_version(name=path).payload.data.decode()
 
 TG_TOKEN  = secret("tg-token")
-OPENAI_KEY = secret("openai-key")
 ANKI_URL   = secret("anki-url")          # e.g. https://anki-tunnel.example/invoke
 DECK   = "Hebrew"
 MODEL  = "Basic"
 
-openai = AsyncOpenAI(api_key=OPENAI_KEY)
 timeout = aiohttp.ClientTimeout(total=5)
-
-SYSTEM_PROMPT = """
-You are a card‑creator. Return strict minified JSON:
-{
- "front": "...",
- "back": "...",
- "pos": "...",
- "forms": { "inf": "", "present": "", "past": "", "future": "" },
- "examples": ["...", "..."]
-}
-No niqqud. No extra keys.
-"""
-
-# ---------- helpers ----------
-async def llm_card(word: str) -> dict | None:
-    rsp = await openai.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                  {"role": "user", "content": word}]
-    )
-    try:
-        return json.loads(rsp.choices[0].message.content)
-    except json.JSONDecodeError:
-        return None
 
 async def push_to_anki(c: Card) -> bool:
     payload = {
@@ -103,9 +74,11 @@ async def add_text(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     card = Card(
         uid=u.effective_user.id,
         ts=datetime.datetime.utcnow().isoformat(),
-        front=data["front"],
-        back=data["back"],
-        examples=data["examples"]
+        front=data.front,
+        back=data.back,
+        pos=data.pos,
+        forms=data.forms,
+        examples=data.examples
     )
     enqueue(card)
     await u.message.reply_text(f"Queued: {card.front} → {card.back}")
