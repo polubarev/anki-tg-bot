@@ -1,19 +1,19 @@
 # End‑to‑End Guide
 
-*(Google Cloud+Telegram+LLM+Queued AnkiConnect Sync)*
+*(Google Cloud+Telegram+LLM+Queued AnkiConnect Sync)*
 
 ---
 
 ## 0.Prerequisites
 
-* **Google CloudCLI** (`gcloud`) logged in, billing enabled.
-* **Docker** installed (for Cloud Run image build).
-* Laptop with **Anki Desktop2.1+, AnkiConnect add‑on≥v.6** and **Cloudflare Tunnel** (or equivalent) that exposes `http://localhost:8765` as a public **HTTPS** URL (e.g. `https://anki-tunnel.example/invoke`).
-* Telegram **Bot Token** (`@BotFather`).
+* **Google CloudCLI** (`gcloud`) logged in, billing enabled.
+* **Docker** installed (for Cloud Run image build).
+* Laptop with **Anki Desktop2.1+, AnkiConnect add‑on≥v.6** and **Cloudflare Tunnel** (or equivalent) that exposes `http://localhost:8765` as a public **HTTPS** URL (e.g. `https://anki-tunnel.example/invoke`).
+* Telegram **Bot Token** (`@BotFather`).
 
 ---
 
-## 1.Local repo layout  
+## 1.Local repo layout  
 
 ```text
 tg‑anki‑bot/
@@ -28,7 +28,7 @@ tg‑anki‑bot/
 
 ## 2.Source code
 
-### 2.1 `requirements.txt`
+### 2.1 `requirements.txt`
 
 ```
 python-telegram-bot[asyncio]>=21.2
@@ -39,7 +39,7 @@ aiohttp>=3.9
 pydantic>=2.7
 ```
 
-### 2.2 `firestore_queue.py`
+### 2.2 `firestore_queue.py`
 
 ```python
 from google.cloud import firestore
@@ -75,7 +75,7 @@ def delete_batch(uid: int, ids: list[str]):
     batch.commit()
 ```
 
-### 2.3 `bot.py`
+### 2.3 `bot.py`
 
 ```python
 import os, json, datetime, asyncio, aiohttp
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     get_app().run_polling()
 ```
 
-### 2.4 `Dockerfile`
+### 2.4 `Dockerfile`
 
 ```dockerfile
 FROM python:3.11-slim
@@ -241,9 +241,9 @@ CMD ["python", "bot.py"]
 
 ---
 
-## 3.Google Cloud setup
+## 3.Google Cloud setup
 
-### 3.1 Enable APIs
+### 3.1 Enable APIs
 
 ```bash
 gcloud services enable run.googleapis.com \
@@ -251,13 +251,13 @@ gcloud services enable run.googleapis.com \
                         secretmanager.googleapis.com
 ```
 
-### 3.2 Create Firestore
+### 3.2 Create Firestore
 
 ```bash
 gcloud firestore databases create --location=europe-west1 
 ```
 
-### 3.3 Secrets
+### 3.3 Secrets
 
 ```bash
 echo "$TELEGRAM_TOKEN" | gcloud secrets create tg-token --data-file=-
@@ -265,7 +265,7 @@ echo "$OPENAI_KEY"     | gcloud secrets create openai-key --data-file=-
 echo "https://anki-tunnel.example/invoke" | gcloud secrets create anki-url --data-file=-
 ```
 
-### 3.4 Docker build & Cloud Run deploy
+### 3.4 Docker build & Cloud Run deploy
 
 ```bash
 gcloud builds submit --tag gcr.io/$(gcloud config get project)/tg-anki-bot
@@ -278,10 +278,10 @@ gcloud run deploy tg-anki-bot \
   --memory 256Mi --max-instances 1
 ```
 
-Cloud Run outputs a URL like
+Cloud Run outputs a URL like
 `https://tg-anki-bot-uc.a.run.app`.
 
-### 3.5 Set Telegram webhook
+### 3.5 Set Telegram webhook
 
 ```bash
 curl -X POST \
@@ -293,7 +293,7 @@ curl -X POST \
 
 ## 4.Laptop setup
 
-1. **Anki Desktop** → *Tools▸Add‑ons▸Get Add‑ons* → code **2055492159** (AnkiConnect).
+1. **Anki Desktop** → *Tools▸Add‑ons▸Get Add‑ons* → code **2055492159** (AnkiConnect).
 2. *Tools▸Add‑ons▸AnkiConnect▸Config* → set
 
    ```json
@@ -347,13 +347,13 @@ service cloud.firestore {
   ```bash
   gcloud run services logs tail tg-anki-bot --region=europe-west1
   ```
-* **Cost guard**: Cloud Run `--max-instances 1` prevents accidental scale‑out.
+* **Cost guard**: Cloud Run `--max-instances 1` prevents accidental scale‑out.
 
 ---
 
 ### You now have a fully functional, no‑cost‐while‑idle pipeline:
 
-* Telegram → Cloud Run (Python bot) → Firestore queue
+* Telegram → Cloud Run (Python bot) → Firestore queue
 * One‑click **Push** → laptop AnkiConnect → sync to AnkiWeb / phone.
 
 Copy the code above into the repo layout, execute the commands in order, and you’re live. Happy card‑making!
