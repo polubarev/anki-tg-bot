@@ -1,0 +1,6 @@
+python-telegram-bot[asyncio]>=21.2
+openai>=1.14
+google-cloud-firestore>=2.16
+google-cloud-secret-manager>=2.19
+aiohttp>=3.9
+pydantic>=2.7
